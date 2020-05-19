@@ -1,0 +1,12 @@
+String str = '{{!Contact_Name}} Can you please confirm your email {{!Contact_Email}}? I will send invoice on this{{!Opportunity_Name}} {{!Opportunity_Amount}} deal.Your amount will be {{!Opportunity_Amount}}';
+integer CountCurly = str.countMatches('{{');
+system.debug('CountCurly :'+CountCurly);
+string strtemp = str;
+List<string> liststr = new List<string>();
+for (integer i=1; i<CountCurly; i++) {
+    strtemp = strtemp.substringafter('}}');     
+    system.debug('String between quotes is-- ' + strtemp.subStringBetween('{{!', '}}'));
+    string val=strtemp.subStringBetween('{{!', '}}');
+    liststr.add(val);
+}
+system.debug('liststr:'+liststr);
