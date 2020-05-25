@@ -1,0 +1,97 @@
+<apex:page Controller="SearchAccount" showHeader="false" sidebar="true">
+    <apex:form >
+        <apex:pageBlock >
+            <apex:inputText value="{!searchKey}"/>
+            <apex:commandButton value="Search records" action="{!executeSearch}" reRender="SearchList" />
+            <apex:commandButton value="Clear records" action="{!clear}"/>            
+            <apex:pageBlock id="SearchList" title="{!IF(acc != NULL && acc.size > 0,'Search Result','No Result')}">              
+                <apex:pageBlockTable value="{!acc}" var="a">                                                                           
+                    <apex:column headerValue="Account Name">                                                
+                        <apex:param name="rowid" value="{!a.Id}" assignTo="{!SelectedRowId}"/>                        
+                        <apex:outputLink value="/{!a.id}?retURL={!URLENCODE('/apex/RetUrlSearchPage?query='+searchKey)}">{!a.Name}</apex:outputLink>
+                    </apex:column>                     
+                    <apex:column value="{!a.ShippingCountry}"/>                
+                    <apex:column value="{!a.Shippingcity}"/>
+                    <apex:column value="{!a.ShippingStreet}"/>
+                    <apex:column headerValue="Action">
+                        <apex:commandButton action="{!deleteRow}" immediate="false" reRender="SearchList" value="Delete">
+                            <apex:param name="rowid" value="{!a.Id}" assignTo="{!SelectedRowId}"/>
+                        </apex:commandButton>
+                    </apex:column>
+                </apex:pageBlockTable>              
+            </apex:pageBlock> 
+        </apex:pageBlock>  
+        <apex:pageBlock mode="edit">                             
+            <apex:pageBlockSection title="Create New Account" columns="2" >
+                <apex:inputField value="{!Account.name}" required="false"/>
+                <apex:inputField value="{!Account.AccountNumber}" required="false"/>
+                <apex:inputField value="{!Account.phone}" required="false"/>
+                <apex:inputField value="{!Account.Fax}"/>
+                <apex:inputField value="{!Account.ParentAccount__c}"/>
+                <apex:inputField value="{!Account.industry}"/>
+                <apex:inputField value="{!Account.Type}"/>
+                <apex:inputField value="{!Account.Website}"/>                 
+                <apex:inputField value="{!Account.Description}"/>                                            
+            </apex:pageBlockSection>               
+            <apex:pageBlockButtons location="bottom">
+                <apex:commandButton value="Save" action="{!save}"/>
+            </apex:pageBlockButtons>           
+        </apex:pageBlock>
+    </apex:form>
+</apex:page>
+
+Controller:-
+public class SearchAccount {
+    public String searchKey {get;set;}
+    public String SelectedRowId {get;set;}
+    public list <Account> acc {get;set;}
+    public Account account { get;set; }     
+    public PageReference executeSearch()       
+    {
+        String queryStr='%' + searchKey + '%';
+        acc=[select id, Name,ShippingCountry, ShippingStreet,ShippingCity from Account where name like :queryStr];     
+        return null;
+    }   
+    public SearchAccount( ){ 
+        Id id = ApexPages.currentPage().getParameters().get('id');
+        account = (id == null) ? new Account() : 
+        [SELECT Name, Phone, Industry,Type,ParentAccount__C,AnnualRevenue,AccountNumber,Description,BillingAddress,Website,Fax FROM Account WHERE Id = :id];
+            System.debug('account '+account);         
+        String urlQuery=ApexPages.currentPage().getParameters().get('query');   
+        if ( (null!=urlQuery) && (0!=urlQuery.length()) )
+        {
+            searchKey=urlQuery;
+            executeSearch();
+        }        
+    } 
+    public void clear(){
+        acc.clear();
+    }  
+    
+    public void deleteRow(){
+        system.debug('acc: '+acc);
+        Account accdelete = new Account();
+        Integer i = 0;        
+        for (Account a : acc) {            
+            if (a.Id == SelectedRowId) {                                
+                system.debug('Account name: '+a.name+' : '+acc[i]);
+                acc.remove(i);
+                accdelete.Id = acc[i].Id;
+                delete accdelete;
+                break;
+            }
+            i++;
+        }
+    }      
+    public PageReference save() {
+        try {
+            upsert(account);
+        } catch(System.DMLException e) {
+            ApexPages.addMessages(e);
+            return null;
+        } 
+        PageReference redirectSuccess = new ApexPages.StandardController(Account).view();
+        return (redirectSuccess);      
+    }
+}
+
