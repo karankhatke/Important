@@ -1,0 +1,61 @@
+public class AccountAuraController {
+    
+    @AuraEnabled
+    public static List<string> getRelatedList(Id recordId)
+    {
+        List<String> options = new List<String>();
+        List<Contact> conlist = [Select id, name,firstname,lastname from Contact where AccountId=: recordId ];
+        
+        for(Contact c : conlist){
+            system.debug('c: '+c);
+            options.add(c.name);
+        }
+        system.debug('options: '+options);
+        return options;
+    }
+}
+
+
+Component:-
+
+<aura:component controller = "AccountAuraController" implements="flexipage:availableForRecordHome,force:hasRecordId" access="global" >
+    <aura:attribute name="recordId" type="Id" />
+    <aura:attribute name="ContactList" type="Contact[]"/>
+    <aura:attribute name="columns" type="List"/>
+    <aura:attribute name="UpdatedList" type="Contact[]"/> 
+    
+    <aura:handler name="init" value="{!this}" action="{!c.myAction}" />
+    <lightning:card iconName="standard:work_capacity_usage" title="Related Contacts">
+        <aura:if isTrue="{!not(empty(v.ContactList))}">
+            <lightning:datatable data="{!v.ContactList }" 
+                         columns="{!v.columns }" 
+                         keyField="Id"
+                         draftValues= "{!v.UpdatedList}"
+                         onsave="{!c.SaveUpdatedContacts}"
+                         hideCheckboxColumn="true"/>
+            <aura:set attribute="else">
+                <div Style="text-align : center"> " There are no related contacts " </div>
+            </aura:set>
+        </aura:if>
+    </lightning:card>
+</aura:component>
+
+Controller:-
+
+({
+doInit: function(component, event, helper) {
+
+var action = component.get("c.getAccountList");
+console.log("@@@action",action);
+action.setCallback(this, function(result){
+var accounts = result.getReturnValue();
+console.log("@@@@accounts",accounts);
+component.set("v.accounts", accounts);
+window.setTimeout(
+$A.getCallback( function() {
+component.find("acc").set("v.value", accounts[4].Id);
+}));
+});
+$A.enqueueAction(action);
+}
+})
